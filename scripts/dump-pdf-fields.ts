@@ -1,11 +1,12 @@
 /**
- * Enumerates AcroForm fields in each PDF under contracts/.
+ * Enumerates AcroForm fields for each contract PDF listed in .env (same keys as the Vite app).
  * Run: npm run dump:pdf-fields
- * Output: src/generated/acroform-manifest.json (committed for app + validation).
+ * Requirements: .env (copy from .env.example) + matching PDFs in contracts/
+ * Output: src/generated/acroform-manifest.json
  */
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
-import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { config } from 'dotenv'
+import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import {
   PDFCheckBox,
   PDFDocument,
@@ -28,6 +29,24 @@ interface ManifestField {
 interface ManifestEntry {
   file: string
   fields: ManifestField[]
+}
+
+const ENV_KEYS = [
+  'VITE_CONTRACT_PDF_SALALAH_LOCAL',
+  'VITE_CONTRACT_PDF_SALALAH_INTERNATIONAL',
+  'VITE_CONTRACT_PDF_SIFAH_LOCAL',
+  'VITE_CONTRACT_PDF_SIFAH_INTERNATIONAL',
+] as const
+
+config({ path: resolve(import.meta.dirname, '..', '.env') })
+
+function requiredEnv(name: (typeof ENV_KEYS)[number]): string {
+  const v = process.env[name]?.trim()
+  if (!v) {
+    console.error(`Missing ${name} in .env (copy .env.example)`)
+    process.exit(1)
+  }
+  return v
 }
 
 /** Maps pdf-lib’s concrete field class to a small JSON-serializable record for the manifest. */
@@ -71,16 +90,16 @@ async function main() {
   const outDir = join(root, 'src', 'generated')
   const outFile = join(outDir, 'acroform-manifest.json')
 
-  const pdfs = readdirSync(contractsDir).filter((f) => f.toLowerCase().endsWith('.pdf'))
-  if (pdfs.length === 0) {
-    console.error('No PDFs found in contracts/')
-    process.exit(1)
-  }
-
   const manifest: ManifestEntry[] = []
 
-  for (const file of pdfs.sort()) {
-    const bytes = readFileSync(join(contractsDir, file))
+  for (const envKey of ENV_KEYS) {
+    const file = requiredEnv(envKey)
+    const path = join(contractsDir, file)
+    if (!existsSync(path)) {
+      console.error(`File not found: ${path}\nPlace "${file}" from .env in contracts/`)
+      process.exit(1)
+    }
+    const bytes = readFileSync(path)
     const pdfDoc = await PDFDocument.load(bytes)
     const form = pdfDoc.getForm()
     const fields = form.getFields().map(classifyField)

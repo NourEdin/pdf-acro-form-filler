@@ -1,23 +1,41 @@
 /**
  * Template metadata and **canonical field order** for PDF filling.
  *
- * - `src/generated/acroform-manifest.json` is produced by `npm run dump:pdf-fields` from PDFs in
- *   `contracts/`. It lists each file’s AcroForm fields in pdf-lib order.
- * - **Canonical keys** for React form state / `values` are Salalah Beach [international] field
- *   names in that manifest order (`salalahCanonicalFieldOrder`). Every fill path ultimately
- *   maps those keys to the right widget name on each PDF (see `fillAcroForm.ts`).
+ * - Template **filenames** come from `.env` (`VITE_CONTRACT_PDF_*`); copy `.env.example` to `.env`.
+ * - PDF bytes are **not** tracked in git; place matching files in `contracts/` and `public/contracts/`.
+ * - `src/generated/acroform-manifest.json` is produced by `npm run dump:pdf-fields` (uses the same env
+ *   keys). Its `file` entries must match these names.
+ * - **Canonical keys** for React form state / `values` are the **international** Salalah template’s
+ *   AcroForm names in manifest order (`salalahCanonicalFieldOrder`).
  */
 import acroformManifest from '../../../generated/acroform-manifest.json'
 import type { Branch } from '../types'
 
+const ENV = {
+  salalahLocal: 'VITE_CONTRACT_PDF_SALALAH_LOCAL',
+  salalahInternational: 'VITE_CONTRACT_PDF_SALALAH_INTERNATIONAL',
+  sifahLocal: 'VITE_CONTRACT_PDF_SIFAH_LOCAL',
+  sifahInternational: 'VITE_CONTRACT_PDF_SIFAH_INTERNATIONAL',
+} as const
+
+function pdfFileName(varName: (typeof ENV)[keyof typeof ENV]): string {
+  const raw = import.meta.env[varName]
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new Error(
+      `[manifest] Missing or empty ${varName} in .env — copy .env.example to .env and set all VITE_CONTRACT_PDF_* filenames.`,
+    )
+  }
+  return raw.trim()
+}
+
 export const TEMPLATE_FILES = {
   salalah: {
-    local: 'Salalah Beach [local].pdf',
-    international: 'Salalah Beach [international].pdf',
+    local: pdfFileName(ENV.salalahLocal),
+    international: pdfFileName(ENV.salalahInternational),
   },
   sifah: {
-    local: 'Sifah [local].pdf',
-    international: 'Sifah [international].pdf',
+    local: pdfFileName(ENV.sifahLocal),
+    international: pdfFileName(ENV.sifahInternational),
   },
 } as const
 
@@ -29,7 +47,9 @@ type ManifestEntry = (typeof acroformManifest)[number]
 function entryForFile(file: string): ManifestEntry {
   const found = acroformManifest.find((m) => m.file === file)
   if (!found) {
-    throw new Error(`acroform-manifest.json missing entry for: ${file}`)
+    throw new Error(
+      `acroform-manifest.json missing entry for: ${file}. Run npm run dump:pdf-fields after placing PDFs and aligning .env names.`,
+    )
   }
   return found
 }

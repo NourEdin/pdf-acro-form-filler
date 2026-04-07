@@ -1,4 +1,8 @@
-import { acroformManifest, salalahCanonicalFieldOrder } from './manifest'
+import {
+  acroformManifest,
+  salalahCanonicalFieldOrder,
+  TEMPLATE_FILES,
+} from './manifest'
 
 export interface ManifestValidationIssue {
   kind: 'unknown_form_key' | 'read_only_in_template'
@@ -9,11 +13,10 @@ export interface ManifestValidationIssue {
 export function validateFieldDefinitions(
   defs: readonly { formKey: string }[],
 ): ManifestValidationIssue[] {
-  const salalahEntry = acroformManifest.find(
-    (m) => m.file === 'Salalah Beach [international].pdf',
-  )
+  const canonicalFile = TEMPLATE_FILES.salalah.international
+  const salalahEntry = acroformManifest.find((m) => m.file === canonicalFile)
   if (!salalahEntry) {
-    throw new Error('Manifest must include Salalah Beach [international].pdf')
+    throw new Error(`Manifest must include ${canonicalFile} (see .env / .env.example)`)
   }
   const known = new Set(salalahEntry.fields.map((f) => f.fieldName))
   const readonly = new Set(

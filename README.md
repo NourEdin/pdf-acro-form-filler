@@ -2,17 +2,39 @@
 
 React (Vite + TypeScript) app that collects contract data in an HTML form and fills **AcroForm** text fields in two venue PDFs (**Salalah Beach** and **Sifah**) for either **Local** or **International** templates. Filling runs **in the browser** with [pdf-lib](https://pdf-lib.js.org/).
 
+## Contract PDFs and `.env` (not in version control)
+
+- **Binary PDF templates are gitignored** (`contracts/*.pdf`, `public/contracts/*.pdf`). Obtain them separately and add them locally.
+- **Filenames** for those four templates are configured in **`.env`** (not committed). Copy **[`.env.example`](.env.example)** to **`.env`** and set the **`VITE_CONTRACT_PDF_*`** variables to the actual file names on disk (defaults in the example match the historical template names).
+- Vite only exposes variables prefixed with **`VITE_`** to the app; the same keys are read by **`npm run dump:pdf-fields`** via `dotenv` in Node.
+- Keep **`contracts/`** and **`public/contracts/`** in sync: the same four files (with the same names as in `.env`) should exist in both folders so (1) the dump script can read `contracts/` and (2) the dev server can serve `public/contracts/` at `/contracts/...`.
+
+[`src/generated/acroform-manifest.json`](src/generated/acroform-manifest.json) lists AcroForm metadata per file; its `"file"` strings must **exactly match** the names in `.env`. After renaming templates, update `.env`, re-copy PDFs, run **`npm run dump:pdf-fields`**, and commit the updated manifest if you track it in git.
+
+---
+
 ## Run and test the app
 
 ### Prerequisites
 
 - **Node.js** 20+ (or recent LTS) and **npm**
-- This repository cloned and dependencies installed
+- The four contract **`.pdf`** files available locally
+- **`.env`** created from `.env.example` (required for `dev` / `build` / `dump:pdf-fields`)
 
 ### Install
 
 ```bash
 npm install
+cp .env.example .env
+# Edit .env if your template file names differ from the example.
+```
+
+Place the PDFs in **`contracts/`** and **`public/contracts/`** using exactly those names.
+
+### Regenerate manifest (after adding or changing templates)
+
+```bash
+npm run dump:pdf-fields
 ```
 
 ### Run locally (development)
@@ -30,13 +52,13 @@ Open the URL Vite prints (usually **http://localhost:5173/**). The app uses hash
 3. **Downloads** — After a successful run, use **Download — Salalah Beach** and **Download — Sifah**; open both PDFs and confirm text appears in the intended fields.
 4. **ZIP** — Use **Download ZIP (both)** and confirm both files are inside the archive.
 5. **Inspector** — Go to **`#/dev/fields`** and confirm the slot/field table matches your expectations when templates change.
-6. **Regenerate manifest** — After swapping PDFs in [`contracts/`](contracts/), run `npm run dump:pdf-fields`, copy updated templates into [`public/contracts/`](public/contracts/) if needed, then repeat steps 2–4.
+6. **Template churn** — When PDFs change, update **`contracts/`** and **`public/contracts/`**, run **`npm run dump:pdf-fields`**, and fix **`.env`** if filenames changed.
 
 ### Automated checks (no unit test suite yet)
 
 ```bash
 npm run lint    # ESLint
-npm run build   # TypeScript + production Vite build
+npm run build   # TypeScript + production Vite build (needs .env)
 ```
 
 To smoke-test the **production** bundle locally:
@@ -51,7 +73,7 @@ Then open the printed URL and repeat the manual steps above.
 
 | Command | Purpose |
 | ------- | ------- |
-| `npm run dump:pdf-fields` | Regenerate [`src/generated/acroform-manifest.json`](src/generated/acroform-manifest.json) from PDFs in [`contracts/`](contracts/) |
+| `npm run dump:pdf-fields` | Reads PDFs from `contracts/` using names in `.env`, writes [`src/generated/acroform-manifest.json`](src/generated/acroform-manifest.json) |
 
 ---
 
@@ -74,35 +96,35 @@ Then open the printed URL and repeat the manual steps above.
 
 ### 2. Where templates live
 
-- Source PDFs: [`contracts/`](contracts/) (authoritative copies).
-- App loads from **`public/contracts/`** — static URLs like `/contracts/Salalah%20Beach%20%5Blocal%5D.pdf` (see [`templateUrl`](src/features/contract-prefiller/config/manifest.ts)). After editing templates in `contracts/`, copy them into `public/contracts/` again (or automate that in your build).
+- **Authoritative copies** for the dump script: [`contracts/`](contracts/) (gitignored `*.pdf`).
+- **Served to the browser**: [`public/contracts/`](public/contracts/) (gitignored `*.pdf`) — URLs like `/contracts/<encoded-filename>` (see [`templateUrl`](src/features/contract-prefiller/config/manifest.ts)).
 
 ### 3. Which file pair is filled
 
-The user’s **Local | International** choice selects **two** files:
+The user’s **Local | International** choice selects **two** files. Their names come from **`.env`**:
 
-| Branch          | Salalah template                     | Sifah template              |
-| --------------- | ------------------------------------ | --------------------------- |
-| Local           | `Salalah Beach [local].pdf`          | `Sifah [local].pdf`         |
-| International   | `Salalah Beach [international].pdf`   | `Sifah [international].pdf` |
+| Branch | Env var (Salalah) | Env var (Sifah) |
+| ------ | ----------------- | --------------- |
+| Local | `VITE_CONTRACT_PDF_SALALAH_LOCAL` | `VITE_CONTRACT_PDF_SIFAH_LOCAL` |
+| International | `VITE_CONTRACT_PDF_SALALAH_INTERNATIONAL` | `VITE_CONTRACT_PDF_SIFAH_INTERNATIONAL` |
 
 Implementation: [`generateFilledPair.ts`](src/features/contract-prefiller/pdf/generateFilledPair.ts) resolves filenames, loads both PDFs, applies values, then `save()`s each document to a `Uint8Array` for download.
 
 ### 4. Form `values` and “canonical” field names
 
-React form state is a flat `Record<string, string>`. Keys are **AcroForm names** taken from **Salalah Beach [international]** in the order pdf-lib reports them — the **canonical order** — see [`salalahCanonicalFieldOrder`](src/features/contract-prefiller/config/manifest.ts).
+React form state is a flat `Record<string, string>`. Keys are **AcroForm names** taken from the **international Salalah** template (whatever filename **`VITE_CONTRACT_PDF_SALALAH_INTERNATIONAL`** points to), in the order pdf-lib reports in the manifest — see [`salalahCanonicalFieldOrder`](src/features/contract-prefiller/config/manifest.ts).
 
-That list comes from the build-time manifest [`src/generated/acroform-manifest.json`](src/generated/acroform-manifest.json). Regenerate it whenever PDFs change:
+Regenerate the manifest when PDFs change:
 
 ```bash
 npm run dump:pdf-fields
 ```
 
-The dump script ([`scripts/dump-pdf-fields.ts`](scripts/dump-pdf-fields.ts)) opens each PDF in `contracts/`, calls `getForm().getFields()`, and writes name, type, read-only, multiline, etc.
+The dump script ([`scripts/dump-pdf-fields.ts`](scripts/dump-pdf-fields.ts)) loads each configured PDF from `contracts/`, calls `getForm().getFields()`, and writes name, type, read-only, multiline, etc.
 
 ### 5. Why Salalah and Sifah are filled differently
 
-**Salalah (local and, in this repo, international):** the AcroForm **names** and **order** match the canonical list. We write each value to the widget with the **same name** as the form key.
+**Salalah:** the AcroForm **names** and **order** match the canonical list for both local and international files (for the templates this project was built against). We write each value to the widget with the **same name** as the form key.
 
 **Sifah:** AcroForm names (and sometimes order) **differ** from Salalah’s, but the PDFs still have the same **number** of logical slots. We assume **index *i*** on Salalah and **index *i*** on Sifah refer to the **same** box on the layout.
 
@@ -123,9 +145,10 @@ Details and inline notes: [`fillAcroForm.ts`](src/features/contract-prefiller/pd
 | ---- | ---- |
 | [`src/features/contract-prefiller/pdf/fillAcroForm.ts`](src/features/contract-prefiller/pdf/fillAcroForm.ts) | `getTextField` / `setText` / appearances |
 | [`src/features/contract-prefiller/pdf/generateFilledPair.ts`](src/features/contract-prefiller/pdf/generateFilledPair.ts) | Pick pair, load, fill, save |
-| [`src/features/contract-prefiller/config/manifest.ts`](src/features/contract-prefiller/config/manifest.ts) | Canonical order, template URLs |
+| [`src/features/contract-prefiller/config/manifest.ts`](src/features/contract-prefiller/config/manifest.ts) | Template names from `.env`, canonical order, URLs |
 | [`src/features/contract-prefiller/config/form-config.ts`](src/features/contract-prefiller/config/form-config.ts) | UI field definitions |
 | [`scripts/dump-pdf-fields.ts`](scripts/dump-pdf-fields.ts) | Manifest generator |
+| [`.env.example`](.env.example) | Documented `VITE_CONTRACT_PDF_*` filenames |
 
 General **pdf-lib** walkthroughs (not tied to this repo) live under [`docs/tutorials/`](docs/tutorials/).
 

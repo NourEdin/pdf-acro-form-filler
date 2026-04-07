@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local env and contract PDFs (filenames are set in .env — see .env.example)
+.env
+contracts/*.pdf
+public/contracts/*.pdf
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
