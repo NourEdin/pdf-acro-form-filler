@@ -1,0 +1,252 @@
+#root {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  text-align: left;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+.prefiller-header h1 {
+  font-size: 1.75rem;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.prefiller-lede {
+  margin: 0 0 1rem;
+  color: var(--text);
+}
+
+.prefiller-nav {
+  margin-bottom: 1.5rem;
+}
+
+.prefiller-nav a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.prefiller-nav a:hover {
+  text-decoration: underline;
+}
+
+.branch-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.branch-legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.branch-options {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.branch-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  color: var(--text-h);
+}
+
+.contract-form {
+  margin-bottom: 1.5rem;
+}
+
+.form-scroll {
+  max-height: min(55vh, 28rem);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: color-mix(in srgb, var(--bg) 92%, var(--border));
+}
+
+.form-row {
+  margin-bottom: 0.75rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-h);
+  margin-bottom: 0.25rem;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.form-input:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.form-input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.form-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #c02626;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-error {
+    color: #fca5a5;
+  }
+}
+
+.form-meta {
+  font-size: 0.8rem;
+  color: var(--text);
+  margin: 0 0 0.75rem;
+}
+
+.form-meta code {
+  font-size: 0.85em;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.form-actions .btn.primary {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent-border);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+  .btn.primary {
+    color: #fff;
+  }
+}
+
+.btn.secondary {
+  background: transparent;
+}
+
+.btn.full {
+  width: 100%;
+}
+
+.banner.error {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #fca5a5;
+  background: color-mix(in srgb, #fecaca 35%, transparent);
+  margin-bottom: 1rem;
+  color: var(--text-h);
+}
+
+.download-actions {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.download-heading {
+  font-size: 1.15rem;
+  margin: 0 0 0.35rem;
+}
+
+.download-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.download-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.inspector-summary {
+  margin-bottom: 1rem;
+}
+
+.inspector-summary ul {
+  margin: 0.35rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.inspector-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.inspector-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.inspector-table th,
+.inspector-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.inspector-table th {
+  background: var(--code-bg);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.inspector-row-diff {
+  background: var(--accent-bg);
+}
