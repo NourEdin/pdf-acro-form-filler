@@ -2,6 +2,59 @@
 
 React (Vite + TypeScript) app that collects contract data in an HTML form and fills **AcroForm** text fields in two venue PDFs (**Salalah Beach** and **Sifah**) for either **Local** or **International** templates. Filling runs **in the browser** with [pdf-lib](https://pdf-lib.js.org/).
 
+## Run and test the app
+
+### Prerequisites
+
+- **Node.js** 20+ (or recent LTS) and **npm**
+- This repository cloned and dependencies installed
+
+### Install
+
+```bash
+npm install
+```
+
+### Run locally (development)
+
+```bash
+npm run dev
+```
+
+Open the URL Vite prints (usually **http://localhost:5173/**). The app uses hash routing: the prefiller is at `/` and the field inspector at **`#/dev/fields`**.
+
+### Manual QA (how to test)
+
+1. **Branch** — Choose **Local** or **International**; the form should reflect your visibility rules in [`form-config.ts`](src/features/contract-prefiller/config/form-config.ts).
+2. **Fill** — Enter text (or use **Fill with random data**), then **Submit and generate PDFs**.
+3. **Downloads** — After a successful run, use **Download — Salalah Beach** and **Download — Sifah**; open both PDFs and confirm text appears in the intended fields.
+4. **ZIP** — Use **Download ZIP (both)** and confirm both files are inside the archive.
+5. **Inspector** — Go to **`#/dev/fields`** and confirm the slot/field table matches your expectations when templates change.
+6. **Regenerate manifest** — After swapping PDFs in [`contracts/`](contracts/), run `npm run dump:pdf-fields`, copy updated templates into [`public/contracts/`](public/contracts/) if needed, then repeat steps 2–4.
+
+### Automated checks (no unit test suite yet)
+
+```bash
+npm run lint    # ESLint
+npm run build   # TypeScript + production Vite build
+```
+
+To smoke-test the **production** bundle locally:
+
+```bash
+npm run build && npm run preview
+```
+
+Then open the printed URL and repeat the manual steps above.
+
+### Other scripts
+
+| Command | Purpose |
+| ------- | ------- |
+| `npm run dump:pdf-fields` | Regenerate [`src/generated/acroform-manifest.json`](src/generated/acroform-manifest.json) from PDFs in [`contracts/`](contracts/) |
+
+---
+
 ## How PDF field updating works
 
 ### 1. Library and model
@@ -64,14 +117,6 @@ Details and inline notes: [`fillAcroForm.ts`](src/features/contract-prefiller/pd
 
 [`form-config.ts`](src/features/contract-prefiller/config/form-config.ts) defines which canonical keys appear in the UI for Local / International (`localOnlyKeys` / `internationalOnlyKeys`). Keys not shown still exist in the schema; submitting with empty strings yields empty PDF fields for those slots.
 
-## Scripts
-
-| Command | Purpose |
-| ------- | ------- |
-| `npm run dev` | Dev server |
-| `npm run build` | Production build |
-| `npm run dump:pdf-fields` | Refresh `src/generated/acroform-manifest.json` from `contracts/` |
-
 ## Project layout (PDF-related)
 
 | Path | Role |
@@ -81,6 +126,8 @@ Details and inline notes: [`fillAcroForm.ts`](src/features/contract-prefiller/pd
 | [`src/features/contract-prefiller/config/manifest.ts`](src/features/contract-prefiller/config/manifest.ts) | Canonical order, template URLs |
 | [`src/features/contract-prefiller/config/form-config.ts`](src/features/contract-prefiller/config/form-config.ts) | UI field definitions |
 | [`scripts/dump-pdf-fields.ts`](scripts/dump-pdf-fields.ts) | Manifest generator |
+
+General **pdf-lib** walkthroughs (not tied to this repo) live under [`docs/tutorials/`](docs/tutorials/).
 
 ## Risks (short)
 
