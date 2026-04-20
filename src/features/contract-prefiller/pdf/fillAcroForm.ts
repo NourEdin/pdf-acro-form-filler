@@ -58,8 +58,8 @@ export function applyValuesToSifahPdf(
   }
   const form = pdf.getForm()
   for (let i = 0; i < canonicalFieldOrder.length; i++) {
-    const key = canonicalFieldOrder[i]!
-    const target = sifahFieldOrder[i]!
+    const key = canonicalFieldOrder[i]
+    const target = sifahFieldOrder[i]
     const text = values[key] ?? ''
     try {
       form.getTextField(target).setText(text)
@@ -77,4 +77,10 @@ export async function loadPdf(url: string): Promise<PDFDocument> {
     throw new Error(`Failed to load PDF (${res.status}): ${url}`)
   }
   return PDFDocument.load(await res.arrayBuffer())
+}
+
+export async function loadPdfFromBytes(
+  bytes: ArrayBuffer | Uint8Array,
+): Promise<PDFDocument> {
+  return PDFDocument.load(bytes)
 }

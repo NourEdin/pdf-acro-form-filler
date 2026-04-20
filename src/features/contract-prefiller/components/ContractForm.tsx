@@ -2,12 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { useMemo } from 'react'
 import { z } from 'zod'
-import {
-  definitionsForBranch,
-  fieldDefinitions,
-} from '../config/form-config'
-import { salalahCanonicalFieldOrder } from '../config/manifest'
+import { definitionsForBranch } from '../config/form-config'
 import type { Branch } from '../types'
+import type { FieldDefinition } from '../config/form-config'
 
 function buildSchema(keys: readonly string[]) {
   const shape: Record<string, z.ZodString> = {}
@@ -36,16 +33,20 @@ interface ContractFormProps {
   branch: Branch
   onSubmit: (values: Record<string, string>) => void
   isSubmitting: boolean
+  fieldDefinitions: readonly FieldDefinition[]
+  canonicalCount: number
 }
 
 export function ContractForm({
   branch,
   onSubmit,
   isSubmitting,
-}: ContractFormProps) {
+  fieldDefinitions,
+  canonicalCount,
+}: Readonly<ContractFormProps>) {
   const editableKeys = useMemo(
     () => fieldDefinitions.filter((d) => !d.readOnly).map((d) => d.formKey),
-    [],
+    [fieldDefinitions],
   )
 
   const schema = useMemo(() => buildSchema(editableKeys), [editableKeys])
@@ -62,7 +63,7 @@ export function ContractForm({
     defaultValues: defaults,
   })
 
-  const visible = definitionsForBranch(branch)
+  const visible = definitionsForBranch(branch, fieldDefinitions)
 
   function fillRandomData(): void {
     for (const def of visible) {
@@ -115,7 +116,7 @@ export function ContractForm({
         })}
       </div>
       <p className="form-meta">
-        {visible.length} of {salalahCanonicalFieldOrder.length} fields shown for
+        {visible.length} of {canonicalCount} fields shown for
         this contract type. Configure visibility in{' '}
         <code>form-config.ts</code>.
       </p>
@@ -129,7 +130,7 @@ export function ContractForm({
           Fill with random data
         </button>
         <button type="submit" className="btn primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Generating PDFs…' : 'Submit and generate PDFs'}
+          {isSubmitting ? 'Saving…' : 'Submit'}
         </button>
       </div>
     </form>

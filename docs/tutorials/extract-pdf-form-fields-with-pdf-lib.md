@@ -131,7 +131,7 @@ if (field instanceof PDFDropdown) {
   const options = field.getOptions()
 }
 if (field instanceof PDFRadioGroup) {
-  const options = field.getOptions().map((o) => o.exportValue)
+  const options = field.getOptions()
 }
 ```
 
@@ -143,7 +143,7 @@ Typical patterns:
 
 1. **On mount or button click**: load PDF → compute `summary` → `setState` or `useMemo` after load.
 2. **Show a dev panel**: render a table of `name`, `kind`, `readOnly` so authors can align API keys with real AcroForm names.
-3. **Build-time script**: a small **Node** script that reads every template under a folder, writes `fields.json`. Your React app imports that JSON instead of parsing PDFs at runtime.
+3. **Runtime extraction**: read bytes from `<input type="file">`, enumerate fields, and use that list to drive a dynamic UI (including showing a “field inspector” panel). This avoids keeping build-time manifests in sync.
 
 Avoid parsing huge PDFs on every keystroke; cache the result per file URL or hash.
 

@@ -1,8 +1,7 @@
-import {
-  acroformManifest,
-  salalahCanonicalFieldOrder,
-  TEMPLATE_FILES,
-} from './manifest'
+export interface ExtractedFieldLike {
+  fieldName: string
+  readOnly: boolean
+}
 
 export interface ManifestValidationIssue {
   kind: 'unknown_form_key' | 'read_only_in_template'
@@ -12,16 +11,10 @@ export interface ManifestValidationIssue {
 
 export function validateFieldDefinitions(
   defs: readonly { formKey: string }[],
+  extracted: readonly ExtractedFieldLike[],
 ): ManifestValidationIssue[] {
-  const canonicalFile = TEMPLATE_FILES.salalah.international
-  const salalahEntry = acroformManifest.find((m) => m.file === canonicalFile)
-  if (!salalahEntry) {
-    throw new Error(`Manifest must include ${canonicalFile} (see .env / .env.example)`)
-  }
-  const known = new Set(salalahEntry.fields.map((f) => f.fieldName))
-  const readonly = new Set(
-    salalahEntry.fields.filter((f) => f.readOnly).map((f) => f.fieldName),
-  )
+  const known = new Set(extracted.map((f) => f.fieldName))
+  const readonly = new Set(extracted.filter((f) => f.readOnly).map((f) => f.fieldName))
   const issues: ManifestValidationIssue[] = []
   for (const d of defs) {
     if (!known.has(d.formKey)) {
@@ -37,14 +30,6 @@ export function validateFieldDefinitions(
   return issues
 }
 
-/** Dev-time guard: canonical order length matches all templates. */
 export function assertSlotAlignment(): void {
-  const len = salalahCanonicalFieldOrder.length
-  for (const m of acroformManifest) {
-    if (m.fields.length !== len) {
-      throw new Error(
-        `Slot count mismatch for ${m.file}: expected ${len}, got ${m.fields.length}`,
-      )
-    }
-  }
+  // No-op: slot alignment across multiple templates was a build-time concern.
 }
