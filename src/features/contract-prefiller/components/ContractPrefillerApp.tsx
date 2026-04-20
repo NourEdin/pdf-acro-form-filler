@@ -1,90 +1,127 @@
-import { useCallback, useState } from 'react'
-import { Link } from 'react-router-dom'
-import JSZip from 'jszip'
-import { BranchSelector } from './BranchSelector'
+import { useCallback, useMemo, useState } from 'react'
 import { ContractForm } from './ContractForm'
 import { DownloadActions } from './DownloadActions'
-import type { Branch } from '../types'
+import { buildFieldDefinitions } from '../config/form-config'
+import { fieldMetaFromExtracted } from '../config/manifest'
+import { extractAcroFormManifest } from '../pdf/extractAcroForm'
 
-interface PairState {
-  salalah: { fileName: string; blob: Blob }
-  sifah: { fileName: string; blob: Blob }
+interface UploadState {
+  file: File
+  bytes: ArrayBuffer
+  extracted: Awaited<ReturnType<typeof extractAcroFormManifest>>
 }
 
 export function ContractPrefillerApp() {
-  const [branch, setBranch] = useState<Branch>('local')
-  const [lastPair, setLastPair] = useState<PairState | null>(null)
+  const [upload, setUpload] = useState<UploadState | null>(null)
+  const [lastValues, setLastValues] = useState<Record<string, string> | null>(
+    null,
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  /** Loads templates from `/contracts/…`, fills AcroForm text fields via pdf-lib, returns raw PDF bytes. */
   const onFormSubmit = useCallback(
     async (values: Record<string, string>) => {
-      setBusy(true)
+      setLastValues(values)
+    },
+    [],
+  )
+
+  const meta = useMemo(() => {
+    return upload ? fieldMetaFromExtracted(upload.extracted.fields) : new Map()
+  }, [upload])
+
+  const fieldDefinitions = useMemo(() => {
+    return upload ? buildFieldDefinitions(upload.extracted.canonicalOrder, meta) : []
+  }, [upload, meta])
+
+  const onPickFile = useCallback(
+    async (file: File | null) => {
       setError(null)
+      setLastValues(null)
+      if (!file) {
+        setUpload(null)
+        return
+      }
+      setBusy(true)
       try {
-        const { generateFilledPdfPair } = await import('../pdf/generateFilledPair')
-        const { salalah, sifah } = await generateFilledPdfPair(branch, values)
-        setLastPair({
-          salalah: {
-            fileName: salalah.fileName,
-            blob: new Blob([new Uint8Array(salalah.bytes)], {
-              type: 'application/pdf',
-            }),
-          },
-          sifah: {
-            fileName: sifah.fileName,
-            blob: new Blob([new Uint8Array(sifah.bytes)], {
-              type: 'application/pdf',
-            }),
-          },
-        })
+        const bytes = await file.arrayBuffer()
+        const extracted = await extractAcroFormManifest(bytes)
+        setUpload({ file, bytes, extracted })
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         setError(msg)
-        setLastPair(null)
+        setUpload(null)
       } finally {
         setBusy(false)
       }
     },
-    [branch],
+    [],
   )
 
-  const downloadZip = useCallback(async () => {
-    if (!lastPair) return
-    const zip = new JSZip()
-    zip.file(lastPair.salalah.fileName, lastPair.salalah.blob)
-    zip.file(lastPair.sifah.fileName, lastPair.sifah.blob)
-    const blob = await zip.generateAsync({ type: 'blob' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    const slug = branch === 'local' ? 'local' : 'international'
-    a.href = url
-    a.download = `contracts-${slug}.zip`
-    a.rel = 'noopener'
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [lastPair, branch])
+  const onDownload = useCallback(async () => {
+    if (!upload || !lastValues) return
+    setBusy(true)
+    setError(null)
+    try {
+      const { generateFilledPdf } = await import('../pdf/generateFilledPdf')
+      const bytes = await generateFilledPdf({
+        templateBytes: upload.bytes,
+        values: lastValues,
+        canonicalOrder: upload.extracted.canonicalOrder,
+      })
+      const blob = new Blob([new Uint8Array(bytes)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = upload.file.name.replace(/\.pdf$/i, '') + '-filled.pdf'
+      a.rel = 'noopener'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setError(msg)
+    } finally {
+      setBusy(false)
+    }
+  }, [upload, lastValues])
 
   return (
     <div className="prefiller">
       <header className="prefiller-header">
         <h1>Contract PDF prefiller</h1>
         <p className="prefiller-lede">
-          Choose Local or International, fill the form, then download filled
-          Salalah Beach and Sifah contract PDFs.
+          Upload a PDF, fill the form, then download the filled PDF.
         </p>
-        <nav className="prefiller-nav">
-          <Link to="/dev/fields">Field inspector (dev)</Link>
-        </nav>
       </header>
 
-      <BranchSelector value={branch} onChange={setBranch} disabled={busy} />
+      <section className="upload-card">
+        <label className="form-label" htmlFor="pdf-upload">
+          PDF template
+        </label>
+        <input
+          id="pdf-upload"
+          type="file"
+          accept="application/pdf,.pdf"
+          className="form-input"
+          disabled={busy}
+          onChange={(e) => onPickFile(e.target.files?.item(0) ?? null)}
+        />
+        {upload ? (
+          <p className="form-meta">
+            Detected {upload.extracted.fields.length} fields in{' '}
+            <code>{upload.file.name}</code>.
+          </p>
+        ) : (
+          <p className="form-meta">Upload a fillable PDF (AcroForm).</p>
+        )}
+      </section>
 
       <ContractForm
-        branch={branch}
+        branch="local"
         onSubmit={onFormSubmit}
         isSubmitting={busy}
+        fieldDefinitions={fieldDefinitions}
+        canonicalCount={upload?.extracted.canonicalOrder.length ?? 0}
       />
 
       {error ? (
@@ -93,12 +130,10 @@ export function ContractPrefillerApp() {
         </div>
       ) : null}
 
-      {lastPair ? (
+      {upload ? (
         <DownloadActions
-          salalah={lastPair.salalah}
-          sifah={lastPair.sifah}
-          onDownloadZip={downloadZip}
-          zipDisabled={busy}
+          onDownload={onDownload}
+          disabled={busy || !lastValues}
         />
       ) : null}
     </div>
